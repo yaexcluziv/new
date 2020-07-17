@@ -1,0 +1,114 @@
+$(function () {
+    var dec = document.querySelector('.slider-range-input');
+    var term = document.querySelector('#slider-range-term');
+
+	if(dec !== null){
+		var initDec = new Powerange(dec, {
+	        callback: displayDecimalValue,
+	        decimal: false,
+	        min: loanMinSum,
+	        max: loanMaxSum,
+	        start: loanStartSum,
+	        step: loanCalcStep
+	    });
+    }
+    if(term !== null){
+		var initTerm = new Powerange(term, {
+	        callback: displayTermValue,
+	        decimal: false,
+	        min: loanMinTerm,
+	        max: loanMaxTerm,
+	        start: questionnaire.loanTerm,
+	    });
+	}
+
+    function displayDecimalValue() {
+        document.getElementById('slider-range-value').innerHTML = Number(dec.value).toCurrencyString();
+        document.getElementById('slider-return-sum-initial').innerHTML = Number(dec.value).toCurrencyString();
+        let retSum = parseInt(dec.value) * (1 + parseInt(term.value) * parseFloat(loanPercentPerDay) / 100);
+        document.querySelectorAll('.slider-return-sum').forEach(function(elem){elem.innerHTML = Number(retSum).toCurrencyString()})
+        let dateNow = new Date(new Date().getTime() + 5 * 60 * 1000);
+        document.getElementById('loan-issued-time').innerText = dateNow.getHours() + ':' + formatMinutes(dateNow.getMinutes());
+        Cookies.set('summ', dec.value);
+    }
+
+    function displayTermValue() {
+        if((dec.value === undefined) || (dec.value == '')) dec.value = loanMinSum;
+
+        document.getElementById('slider-range-term-value').innerHTML = term.value;
+        document.getElementById('slider-return-sum-initial').innerHTML = Number(dec.value).toCurrencyString();
+
+        document.getElementById('slider-range-term-unit').innerHTML = getTermUnit(term.value);
+        let dateTo = new Date(new Date().getTime() + parseInt(term.value) * 24 * 60 * 60 * 1000);
+        let options = {
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+            timezone: 'UTC'
+        };
+        document.querySelectorAll('.date-to-lbl').forEach(function(elem){elem.innerHTML = dateTo.toLocaleString("ru", options)})
+
+        let retSum = parseInt(dec.value) * (1 + parseInt(term.value) * parseFloat(loanPercentPerDay) / 100);
+        document.querySelectorAll('.slider-return-sum').forEach(function(elem){elem.innerHTML = Number(retSum).toCurrencyString()});
+        Cookies.set('term', term.value);
+    }
+
+    function formatMinutes(mins) {
+        return (mins >= 10) ? mins : '0' + mins;
+    }
+
+    $(".popup--link").bind('click', function (e) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        showPopupByLinkId(e);
+    });
+
+    // $(".icon-close").bind('click', function (e) {
+    //     e.preventDefault();
+    //     e.stopImmediatePropagation();
+    //     hidePopupByLinkId(e.target.parentElement.parentElement.parentElement);
+    // });
+
+    $(".popup").bind("click", function (e) {
+
+        if ($(e.target).hasClass('popup-cell') && !$(e.target).hasClass('is-required')) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            hidePopupByLinkId(e.target.parentElement);
+        }
+    });
+
+    // index page fake counter
+    function fakeLoansCounter() {
+        try {
+            var acceptedLoans = $($('.invitation-header .mark').get(1))
+            var acceptedCost = $($('.invitation-header .mark').get(2))
+
+            if(acceptedLoans && acceptedCost){
+                setInterval(() => {
+                    fakeInterval();
+                }, 30000);
+            }
+
+            function fakeInterval(){
+                var acceptedLoansCount = parseInt(acceptedLoans.text())
+                var acceptedCostCount = parseInt(acceptedCost.text().split(' ').join(''))
+                var randomCount = Math.floor(Math.random() * 100) + 1; //from 1 to 100
+                var countAccepterLoans = acceptedLoansCount+randomCount;
+                if(acceptedLoansCount > 0){
+                    acceptedLoans.text(countAccepterLoans)
+                }
+                if(acceptedCostCount > 0){
+                    acceptedCost.text( numberWithSpaces( acceptedCostCount + (8000*randomCount) ) )
+                }
+            }
+        } catch (error) {}
+    }
+
+    function numberWithSpaces(x) {
+        return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    }
+
+    fakeLoansCounter();
+});
+

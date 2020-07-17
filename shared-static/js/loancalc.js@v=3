@@ -1,0 +1,208 @@
+var questionnaire = {
+    loanSum: parseInt(Cookies.get('summ')),
+    loanTerm: Cookies.get('term') ? parseInt(Cookies.get('term')) : 20,
+    acceptance: true,
+    contactData: {
+        firstname: '',
+        lastname: '',
+        patronymic: '',
+        hasPatronymic: true,
+        phone: '',
+        email: '',
+        isFull: false
+    },
+    passportData: {
+        passportseries: '',
+        passportnumber: '',
+        passportissuecode: '',
+        passportissue: '',
+        birthcity: '',
+        addrregion: '',
+        hasrealaddress: '',
+        addrcity: '',
+        addrstreet: '',
+        addrhouse: '',
+        addrapartment: '',
+        isFull: false
+    },
+    card: {
+        ccNumber: '',
+        ccExpire: ''
+    },
+    isSubscribed: false,
+    update: function() {
+        $("#setting-total").text(this.loanSum.toCurrencyString());
+        $("#setting-term-amount").text(this.loanTerm);
+        $("#setting-term-unit").text(getTermUnit(this.loanTerm));
+
+        let _this = this;
+        let keys = Object.keys(this);
+        $.each(keys, function(key, value) {
+            if (_this[value] instanceof Object) {
+                let _obj = _this[value];
+                $.each(Object.keys(_obj), function(key, value) {
+                    $('input[name=' + value + ']').val(_obj[value]);
+                });
+            } else {
+                $('input[name=' + value + ']').val(_this[value]);
+            }
+        });
+        $(".empty").removeClass('has-empty');
+        $(".empty").html('<p>При оформлении заявки рекомендуем заполнить все поля</p><p class="has-empty--title">Не заполнено:</p>');
+        let empty_html = "";
+        if ($("#email").val() === '') {
+            $(".empty").addClass('has-empty');
+            empty_html += "<a href=\"#\"><b>эл.почта</b></a>";
+        }
+        $(".empty").append(empty_html);
+    },
+
+    generateDataToPost: function(part){
+        let dataToPost = {
+            loanSum: this.loanSum,
+            loanTerm: this.loanTerm
+        };
+        dataToPost[part + "Data"] = this[part + "Data"];
+        dataToPost.csrf = _questionnaire.csrf;
+        if (_questionnaire.affiliate !== 'undefined'){
+            dataToPost.affiliate = _questionnaire.affiliate;
+        }
+        // check grecapcha validation
+        if(questionnaire.recaptcha_response !== 'undefined'){
+            dataToPost.recaptcha_response = questionnaire.recaptcha_response
+        }
+        return dataToPost;
+    },
+
+    doRequest: function(part) {
+
+        $("body").addClass('popup-opened');
+        $(".popup--operation-proceed").addClass('popup-is-show');
+        //console.log(dataToPost);
+        //console.log(JSON.stringify(dataToPost));
+        var dataToPost = this.generateDataToPost(part);
+        $.ajax({
+            method: "POST",
+            url: '/api/' + part,
+            /*contentType: "application/json",*/
+            accepts: {
+                json: 'application/json'
+            },
+            // Expect a `mycustomtype` back from server
+            dataType: 'json',
+            data: dataToPost, //JSON.stringify(dataToPost),
+            statusCode: {
+                302: function() {
+                    alert('К сожалению этот телефон уже зарегистрирован');
+                    window.location.reload(true);
+                }
+            }
+        }).done(function(data) {
+            try {
+                _questionnaire.csrf = data.csrf;
+                if (data.next_step !== undefined) {
+                    window.location.href = data.next_step;
+                }
+            } catch (e) {
+
+            }
+            $("body").removeClass('popup-opened');
+            $(".popup--operation-proceed").removeClass('popup-is-show');
+        });
+    },
+
+    requestUpdateLoanTerm: function (part) {
+        let dataToPost = {
+            loanSum: this.loanSum,
+            loanTerm: this.loanTerm
+        };
+        dataToPost.csrf = _questionnaire.csrf;
+        $.ajax({
+            method: "POST",
+            url: '/api/' + part,
+            accepts: {
+                json: 'application/json'
+            },
+            dataType: 'json',
+            data: dataToPost,
+        }).done(function(data) {
+            console.log('requestUpdateLoanTerm data',data)
+        })
+    },
+
+    loadFromPersist: function(persist_obj) {
+        let _this = this;
+        let keys = Object.keys(persist_obj);
+        $.each(keys, function(key, value) {
+            if (persist_obj[value] instanceof Object) {
+                let _keys = Object.keys(persist_obj[value]);
+                $.each(_keys, function(_key, _value) {
+                    _this[value][_value] = persist_obj[value][_value];
+                });
+            } else {
+                _this[value] = persist_obj[value];
+            }
+        });
+    },
+
+    addTarget: function(e) {
+        let code = $(e).data('content');
+        $.ajax({
+            url: '/api/target/' + code
+        });
+        // let win = window.open($(e).data('url'), '_blank');
+        // win.focus();
+    },
+    /**/
+    toLatin: function() {
+
+        let ru = {
+                'а': 'a',
+                'б': 'b',
+                'в': 'v',
+                'г': 'g',
+                'д': 'd',
+                'е': 'e',
+                'ё': 'e',
+                'ж': 'j',
+                'з': 'z',
+                'и': 'i',
+                'к': 'k',
+                'л': 'l',
+                'м': 'm',
+                'н': 'n',
+                'о': 'o',
+                'п': 'p',
+                'р': 'r',
+                'с': 's',
+                'т': 't',
+                'у': 'u',
+                'ф': 'f',
+                'х': 'h',
+                'ц': 'c',
+                'ч': 'ch',
+                'ш': 'sh',
+                'щ': 'shch',
+                'ы': 'y',
+                'э': 'e',
+                'ю': 'u',
+                'я': 'ya'
+            },
+            n_str = [];
+
+        let str = this.contactData.firstname + ' ' + this.contactData.lastname;
+        str = str.replace(/[ъь]+/g, '').replace(/й/g, 'i');
+
+        for (let i = 0; i < str.length; ++i) {
+            n_str.push(
+                ru[str[i]] ||
+                ru[str[i].toLowerCase()] == undefined && str[i] ||
+                ru[str[i].toLowerCase()].replace(/^(.)/, function(match) {
+                    return match.toUpperCase()
+                })
+            );
+        }
+
+        return n_str.join('');
+    }
+};

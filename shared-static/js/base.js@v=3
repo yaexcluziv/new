@@ -1,0 +1,102 @@
+function getTermUnit(dayAmount) {
+    return ((((dec = dayAmount % 100) >= 11 && dec <= 19) || (dec = dayAmount % 10) >= 5 || dec === 0) ? 'дней' : (dec === 1 ? 'день' : 'дня'));
+}
+
+$(function () {
+    $('.field input').focus(function () {
+        $(this).parent().addClass('focused');
+        $(this).parent().removeClass('status-failure');
+        $(this).parent().removeClass('status-success');
+        return false;
+    }).blur(function (e) {
+        $(this).parent().removeClass('focused');
+        try {
+            runValidate(e);
+            $(".empty").removeClass('has-empty');
+            $(".empty").html('<p>При оформлении заявки рекомендуем заполнить все поля</p><p class="has-empty--title">Не заполнено:</p>');
+            let empty_html = "";
+            if ($("#email").val() === '') {
+                $(".empty").addClass('has-empty');
+                empty_html += "<a href=\"#\"><b>эл.почта</b></a>";
+            }
+            let keys = Object.keys(this);
+            $(".empty").append(empty_html);
+        } catch (e) {
+        }
+        return false;
+    });
+    if(navigator.platform.match(/(Mac|iPhone|iPod|iPad)/i)) {
+        $('body').addClass('iosx');
+    }
+    if(navigator.userAgent.match(/(iPhone|iPod|iPad)/i)) {
+        $('body').addClass('iosx-small');
+    }
+    Cookies.set('sbg-tz', moment.tz.guess());
+});
+
+function showPopupByLinkId(e) {
+    try {
+        let targetId = e.target;
+        if($(targetId).prop("tagName") == 'SPAN') targetId = $(e.target).parent().get(0)
+        $("body").addClass('popup-opened');
+        $("." + targetId.id).addClass('popup-is-show');
+    }
+    catch (e) {
+        // @TODO sentry???
+    }
+}
+
+$(".about-faq .popup--link").bind('click', function (e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    showPopupByLinkId(e);
+});
+
+$(".icon-close").bind('click', function (e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    hidePopupByLinkId(e.target.parentElement.parentElement.parentElement);
+});
+
+function hidePopupByLinkId(e) {
+    try {
+        let targetPopup = $(e);
+        $("body").removeClass('popup-opened');
+        targetPopup.removeClass('popup-is-show');
+
+    }
+    catch (e) {
+        // @TODO sentry???
+    }
+}
+
+Number.prototype.toCurrencyString = function () {
+    return this.toFixed(0).replace(/(\d)(?=(\d{3})+\b)/g, '$1 ');
+}
+
+function fintezaAnalytics() {
+    if(typeof window.fz === 'function'){
+        $(document).on('click','.get-money-link-button',function () {
+            fz( "event", {name:'Get+loan+button+click'} );
+        })
+
+        //click on list items
+        $(document).on('click','.form-steps .cards-item .btn-target',function (e) {
+            var index = $(this).closest('.cards-item').index() + 1;// +1
+            fz( "event", {name:'Step+4+offerwall+click+'+index} );
+        })
+
+        //click on items in popup
+        $(document).on('click','.popup--best-deals .cards-item .btn-target',function (e) {
+            var index = $(this).closest('.cards-item').index() + 1;// +1
+            fz( "event", {name:'Step+4+popup+click+'+index} );
+        })
+
+    }
+}
+
+
+
+$(document).ready(function() {
+    fintezaAnalytics();
+})
